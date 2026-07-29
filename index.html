@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>カップ麺バーコードタイマー</title>
+    <!-- バーコードスキャン用のライブラリ -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e1e; color: #d4d4d4; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
+        * { box-sizing: border-box; }
+        
+        .header { background-color: #252526; width: 100%; padding: 15px; text-align: center; font-size: 1.2em; font-weight: bold; border-bottom: 1px solid #3e3e42; color: #fff; }
+        
+        .container { padding: 20px; width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 20px; }
+        .panel { background-color: #2d2d2d; border: 1px solid #3e3e42; border-radius: 8px; padding: 20px; text-align: center; }
+        
+        button { background-color: #0e639c; color: white; border: none; padding: 15px 20px; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        button:active { background-color: #1177bb; }
+        button:disabled { background-color: #555; cursor: not-allowed; color: #888; }
+        .btn-start-timer { background-color: #28a745; }
+        .btn-stop { background-color: #dc3545; }
+        
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
+        #reader video { object-fit: cover; }
+        
+        .noodle-info { font-size: 1.5em; color: #dcdcaa; font-weight: bold; margin: 15px 0; }
+        .time-info { font-size: 1.2em; color: #fff; }
+        
+        .timer-display { font-size: 6em; font-weight: bold; color: #4fc1ff; text-align: center; line-height: 1; margin: 20px 0; font-family: monospace; }
+        .status-msg { font-size: 1.1em; color: #ce9178; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="header">カップ麺自動判別タイマー</div>
+
+<div class="container">
+    <!-- スキャン画面 -->
+    <div class="panel" id="scanPanel">
+        <h3 style="margin-top: 0; color: #569cd6;">バーコードをスキャン</h3>
+        <p style="font-size: 0.9em; color: #888;">商品のJANコードをカメラに向けてください</p>
+        <div id="reader"></div>
+        <button id="btnStartScan">📷 カメラを起動する</button>
+        <button id="btnStopScan" class="btn-stop" style="display: none;">⏹ スキャン停止</button>
+    </div>
+
+    <!-- 結果・タイマー画面 (初期は非表示) -->
+    <div class="panel" id="timerPanel" style="display: none;">
+        <div id="resultArea">
+            <div class="noodle-info" id="noodleName">商品名</div>
+            <div class="time-info">待ち時間: <span id="noodleTime">--</span></div>
+            <div class="status-msg" id="statusMessage"></div>
+            <button id="btnStartTimer" class="btn-start-timer" disabled>▶ タイマー開始</button>
+            <button id="btnRetryScan" style="background-color: #555;">🔄 再スキャン</button>
+        </div>
+
+        <div id="countdownArea" style="display: none;">
+            <div class="timer-display" id="timerDisplay">00:00</div>
+            <button id="btnCancelTimer" class="btn-stop">■ 中止</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // === 1. カップ麺データベース (JANコード: 商品情報) ===
+    // 実際によく使われるバーコード(JANコード)と待ち時間を登録しています
+    const CUP_NOODLE_DB = {
+        // --- 🍜 定番カップラーメン ---
+        "4902105244316": { name: "カップヌードル (通常)", seconds: 180 }, // 3分
+        "4902105244323": { name: "カップヌードル カレー", seconds: 180 }, // 3分
+        "4902105244347": { name: "カップヌードル シーフード", seconds: 180 }, // 3分
+        "4902105244354": { name: "カップヌードル チリトマト", seconds: 180 }, // 3分
+        "4901071227312": { name: "スーパーカップ1.5倍 豚骨", seconds: 180 }, // 3分
+        "4901071227305": { name: "スーパーカップ1.5倍 しょうゆ", seconds: 180 }, // 3分
+        "4901071227329": { name: "スーパーカップ1.5倍 みそ", seconds: 180 }, // 3分
+        "4902881073604": { name: "チャルメラカップ しょうゆ", seconds: 180 }, // 3分
+        "4902702004002": { name: "カップスター しょうゆ", seconds: 180 }, // 3分
+
+        // --- 🥢 カップ焼きそば ---
+        "4902885000686": { name: "ペヤング ソースやきそば", seconds: 180 },[cite: 1] // 3分
+        "4902885001454": { name: "ペヤング ソースやきそば 超大盛", seconds: 180 }, // 3分
+        "4902105022122": { name: "日清焼そばU.F.O.", seconds: 180 }, // 3分
+        "4902105244620": { name: "日清焼そばU.F.O. 大盛", seconds: 180 }, // 3分
+        "4902881435280": { name: "一平ちゃん 夜店の焼そば", seconds: 180 }, // 3分
+        "4901990365174": { name: "昔ながらのソース焼そば", seconds: 180 }, // 3分
+
+        // --- 🦊 カップうどん・そば ---
+        "4902105240011": { name: "日清のどん兵衛 きつねうどん(西)", seconds: 300 }, // 5分
+        "4902105032633": { name: "日清のどん兵衛 きつねうどん(東)", seconds: 300 }, // 5分
+        "4902105282670": { name: "日清のどん兵衛 肉うどん", seconds: 300 }, // 5分
+        "4902105240059": { name: "日清のどん兵衛 天ぷらそば", seconds: 180 }, // 3分
+        "4901990363989": { name: "赤いきつねうどん", seconds: 300 }, // 5分
+        "4901990363996": { name: "緑のたぬき天そば", seconds: 180 }, // 3分
+
+        // --- 🍥 少し特殊な待ち時間の商品 ---
+        "4901990333241": { name: "マルちゃん正麺 芳醇こく醤油", seconds: 300 }, // 5分
+        "4902105273760": { name: "ラ王 背脂醤油", seconds: 300 }, // 5分
+        "4901071228494": { name: "飲み干す一杯 担々麺", seconds: 180 } // 3分
+    };
+
+    // === 2. 音声再生機能 (最大音量) ===
+    let audioContext;
+    function playBeep() {
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') audioContext.resume();
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioContext.currentTime); // 高めのピッチ
+        gain.gain.setValueAtTime(1.0, audioContext.currentTime);     // 音量MAX
+        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.5); // 1.5秒鳴らす
+        osc.start(audioContext.currentTime);
+        osc.stop(audioContext.currentTime + 1.5);
+    }
+
+    // === 3. UI・状態管理 ===
+    const scanPanel = document.getElementById('scanPanel');
+    const timerPanel = document.getElementById('timerPanel');
+    const resultArea = document.getElementById('resultArea');
+    const countdownArea = document.getElementById('countdownArea');
+    const btnStartScan = document.getElementById('btnStartScan');
+    const btnStopScan = document.getElementById('btnStopScan');
+    
+    let html5QrCode;
+    let targetSeconds = 0;
+    let currentInterval = null;
+
+    // === 4. バーコードスキャン処理 ===
+    btnStartScan.addEventListener('click', () => {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+        
+        btnStartScan.style.display = 'none';
+        btnStopScan.style.display = 'block';
+
+        // カメラ設定 (背面カメラを優先、JANコード(EAN-13)等の1Dバーコードに限定)
+        const config = { fps: 10, qrbox: { width: 250, height: 100 } };
+        
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText, decodedResult) => {
+                // 読み取り成功時
+                stopScanner();
+                processBarcode(decodedText);
+            },
+            (errorMessage) => {
+                // 読み取り中のエラーは無視 (毎フレーム発生するため)
+            }
+        ).catch((err) => {
+            alert("カメラの起動に失敗しました。権限を確認してください。\n詳細: " + err);
+            btnStartScan.style.display = 'block';
+            btnStopScan.style.display = 'none';
+        });
+    });
+
+    btnStopScan.addEventListener('click', stopScanner);
+
+    function stopScanner() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                btnStartScan.style.display = 'block';
+                btnStopScan.style.display = 'none';
+            });
+        }
+    }
+
+    function processBarcode(barcode) {
+        scanPanel.style.display = 'none';
+        timerPanel.style.display = 'block';
+        resultArea.style.display = 'block';
+        countdownArea.style.display = 'none';
+
+        const item = CUP_NOODLE_DB[barcode];
+        
+        if (item) {
+            document.getElementById('noodleName').textContent = item.name;
+            document.getElementById('noodleTime').textContent = (item.seconds / 60) + "分";
+            document.getElementById('statusMessage').textContent = "バーコード: " + barcode;
+            document.getElementById('statusMessage').style.color = "#ce9178";
+            targetSeconds = item.seconds;
+            document.getElementById('btnStartTimer').disabled = false;
+        } else {
+            document.getElementById('noodleName').textContent = "未登録の商品";
+            document.getElementById('noodleTime').textContent = "--";
+            document.getElementById('statusMessage').textContent = "登録されていないバーコードです: " + barcode;
+            document.getElementById('statusMessage').style.color = "#dc3545";
+            targetSeconds = 0;
+            document.getElementById('btnStartTimer').disabled = true;
+        }
+    }
+
+    // === 5. タイマー処理 ===
+    document.getElementById('btnStartTimer').addEventListener('click', () => {
+        // 音声コンテキストの初期化（ユーザーアクション必須のためここで発火）
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') audioContext.resume();
+
+        resultArea.style.display = 'none';
+        countdownArea.style.display = 'block';
+        updateTimerDisplay(targetSeconds);
+        
+        let remain = targetSeconds;
+        
+        currentInterval = setInterval(() => {
+            remain--;
+            updateTimerDisplay(remain);
+            
+            if (remain <= 0) {
+                clearInterval(currentInterval);
+                document.getElementById('timerDisplay').textContent = "完成！";
+                playBeep(); // 最大音量のアラームを鳴らす
+            }
+        }, 1000);
+    });
+
+    function updateTimerDisplay(sec) {
+        if (sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        document.getElementById('timerDisplay').textContent = 
+            String(m).padStart(2, '0') + ":" + String(s).padStart(2, '0');
+    }
+
+    // 中止・再スキャン処理
+    document.getElementById('btnCancelTimer').addEventListener('click', resetApp);
+    document.getElementById('btnRetryScan').addEventListener('click', resetApp);
+
+    function resetApp() {
+        if (currentInterval) clearInterval(currentInterval);
+        timerPanel.style.display = 'none';
+        scanPanel.style.display = 'block';
+    }
+</script>
+</body>
+</html>
