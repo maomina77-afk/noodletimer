@@ -385,7 +385,7 @@
         }
     }
 
-    // Yahoo! API (v3 itemSearch) を使ったJANコード検索[cite: 1]
+// Yahoo! API (v3 itemSearch) を使ったJANコード検索
     document.getElementById('btnFetchYahoo').addEventListener('click', async () => {
         const appId = document.getElementById('yahooAppId').value.trim();
         if (!appId) {
@@ -397,10 +397,15 @@
         btn.disabled = true;
         btn.textContent = "検索中...";
 
-        const apiUrl = `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${appId}&jan_code=${currentBarcode}`;
+        // 1. 本来のYahoo!ショッピングAPIのURL[cite: 1]
+        const targetUrl = `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${appId}&jan_code=${currentBarcode}`;
+
+        // 2. CORSプロキシのURLでラップする（ブラウザのCORS制限を回避）
+        const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
 
         try {
-            const response = await fetch(apiUrl);
+            // プロキシURLを使用して通信を行う
+            const response = await fetch(proxyUrl);
             if (!response.ok) throw new Error("API通信に失敗しました (HTTP " + response.status + ")");
             
             const data = await response.json();
