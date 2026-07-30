@@ -2,28 +2,30 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JANコード商品名検索（対策版）</title>
+    <title>JANコード商品名検索（CORS回避対策版）</title>
     <style>
         body { font-family: sans-serif; margin: 20px; }
         .container { max-width: 600px; margin: auto; }
         input, button { padding: 8px; font-size: 16px; }
         #result { margin-top: 15px; font-weight: bold; color: #333; }
+        .note { font-size: 12px; color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>商品検索アプリ</h1>
+        <h1>商品検索アプリ（CORS対策済）</h1>
         <p>JANコードを入力してください:</p>
         <input type="text" id="janInput" placeholder="例: 4901330011332">
         <button onclick="searchItem()">検索</button>
         
         <h2>検索結果:</h2>
         <p id="result">ここに商品名が表示されます</p>
+
+        <p class="note">※CORS制限を回避するため、CORSプロキシを経由してAPIにアクセスしています。</p>
     </div>
 
     <script>
         async function searchItem() {
-            // アプリのClient ID（適切に設定してください）
             const clientId = 'dmVyPTIwMjUwNyZpZD1VUXFzQkpCSllzJmhhc2g9TlRaa1l6SXlNemMyTUdRek5qUmtNdw'; 
             const jan = document.getElementById('janInput').value.trim();
             const resultEl = document.getElementById('result');
@@ -33,16 +35,18 @@
                 return;
             }
 
-            // 【対策1】テンプレートリテラルの構文ミス（{clientId} -> ${clientId}）を修正
-            // 【対策2】正しいYahoo!ショッピングAPI v3のエンドポイントURLに変更
-            const url = `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${clientId}&jan_code=${jan}`;
+            // 1. 本来のYahoo!ショッピングAPIのURL
+            const targetUrl = `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${clientId}&jan_code=${jan}`;
+
+            // 2. CORSプロキシのURLでラップする（ブラウザのCORS制限を回避）
+            // ※corsproxy.ioなどのサービスを経由することで、ブラウザから安全に外部APIへアクセスできます
+            const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
 
             resultEl.textContent = '検索中...';
 
             try {
-                const response = await fetch(url);
+                const response = await fetch(proxyUrl);
                 
-                // HTTPステータスのチェック
                 if (!response.ok) {
                     throw new Error(`サーバーエラー (HTTP Status: ${response.status})`);
                 }
@@ -56,10 +60,8 @@
                     resultEl.textContent = '商品が見つかりませんでした。';
                 }
             } catch (error) {
-                // 【対策3】CORSエラーやネットワークエラーが発生した場合の案内
                 console.error(error);
-                resultEl.textContent = 'エラーが発生しました: ' + error.message + 
-                    '（※ブラウザから直接APIを呼び出すとCORSポリシーによりブロックされる場合があります。その場合はサーバー経由で通信してください）';
+                resultEl.textContent = 'エラーが発生しました: ' + error.message;
             }
         }
     </script>
