@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Noodle Timer V1.02</title>
+    <title>Noodle Timer V1.03</title>
     <!-- バーコードスキャン用のライブラリ -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -25,7 +25,7 @@
         .btn-import-label { display: block; background-color: #512da8; color: white; padding: 15px 20px; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; text-align: center; }
         .btn-import-label:active { background-color: #4527a0; }
         
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
         #reader video { object-fit: cover; }
         
         .noodle-info { font-size: 1.5em; color: #dcdcaa; font-weight: bold; margin: 15px 0; }
@@ -47,13 +47,23 @@
 </head>
 <body>
 
-<div class="header">Noodle Timer V1.02</div>
+<div class="header">Noodle Timer V1.03</div>
 
 <div class="container">
-    <!-- 1. スキャン画面 -->
+    <!-- 1. スキャン画面 ＆ JAN手入力 -->
     <div class="panel" id="scanPanel">
         <h3 style="margin-top: 0; color: #569cd6;">📷 バーコードで探す</h3>
-        <p style="font-size: 0.9em; color: #888;">商品のJANコードを読み取ります</p>
+        
+        <!-- JAN手入力エリア -->
+        <div style="background-color: #252526; padding: 12px; border-radius: 6px; margin-bottom: 15px; text-align: left; border: 1px solid #3e3e42;">
+            <label style="font-size: 0.85em; color: #888;">JANコードを直接入力して検索</label>
+            <div style="display: flex; gap: 8px; margin-top: 5px;">
+                <input type="text" id="manualJanInput" placeholder="例: 4902105022122" maxlength="13" style="margin-bottom: 0;">
+                <button id="btnSearchJan" style="margin-top: 0; width: 110px; padding: 10px; font-size: 0.95em; background-color: #1177bb;">検索</button>
+            </div>
+        </div>
+
+        <p style="font-size: 0.9em; color: #888; margin-bottom: 10px;">またはカメラで読み取る</p>
         <div id="reader"></div>
         <button id="btnStartScan">カメラを起動する</button>
         <button id="btnStopScan" class="btn-stop" style="display: none;">⏹ スキャン停止</button>
@@ -296,7 +306,17 @@
         }
     });
 
-    // === 4. バーコードスキャン処理 & Yahoo! API連携 ===
+    // === 4. JAN手入力検索 ＆ カメラバーコードスキャン処理 ===
+    document.getElementById('btnSearchJan').addEventListener('click', () => {
+        const janVal = document.getElementById('manualJanInput').value.trim();
+        if (!janVal) {
+            alert("JANコードを入力してください。");
+            return;
+        }
+        stopScanner();
+        processBarcode(janVal);
+    });
+
     document.getElementById('btnStartScan').addEventListener('click', () => {
         if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
         document.getElementById('btnStartScan').style.display = 'none';
@@ -365,7 +385,7 @@
         }
     }
 
-    // Yahoo! API (v3 itemSearch) を使ったJANコード検索
+    // Yahoo! API (v3 itemSearch) を使ったJANコード検索[cite: 1]
     document.getElementById('btnFetchYahoo').addEventListener('click', async () => {
         const appId = document.getElementById('yahooAppId').value.trim();
         if (!appId) {
@@ -377,11 +397,9 @@
         btn.disabled = true;
         btn.textContent = "検索中...";
 
-        // CORS回避のため、一般的な公開プロキシまたはJSONP代替として直接fetch（※環境によってはCORSエラーになるため必要に応じてCORS拡張やサーバー経由へ変更してください）
         const apiUrl = `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${appId}&jan_code=${currentBarcode}`;
 
         try {
-            // ブラウザの制約(CORS)を考慮し、CORS非対応の場合は通常エラーになります
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error("API通信に失敗しました (HTTP " + response.status + ")");
             
@@ -435,7 +453,6 @@
         activeDB[currentBarcode] = { name: nameInput, seconds: newSeconds };
         
         targetSeconds = newSeconds;
-        startCountdownName = nameInput;
         startCountdownMode(nameInput);
     });
 
@@ -485,6 +502,7 @@
 
     function resetApp() {
         if (currentInterval) clearInterval(currentInterval);
+        document.getElementById('manualJanInput').value = "";
         timerPanel.style.display = 'none';
         scanPanel.style.display = 'block';
         manualSelectPanel.style.display = 'block';
@@ -492,40 +510,6 @@
         dataPanel.style.display = 'block';
         initSelectBoxes(); 
     }
-
-    // === 6. データのバックアップ/復元 ===
-    document.getElementById('btnExport').addEventListener('click', () => {
-        if (Object.keys(userDB).length === 0) return alert("自分で登録したデータがまだありません。");
-        const blob = new Blob([JSON.stringify(userDB, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "cup_noodle_custom_db.json";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    });
-
-    document.getElementById('fileImport').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const importedDB = JSON.parse(event.target.result);
-                userDB = { ...userDB, ...importedDB };
-                localStorage.setItem('cup_noodle_custom_db', JSON.stringify(userDB));
-                activeDB = { ...DEFAULT_DB, ...userDB };
-                initSelectBoxes();
-                alert("データの読み込みに成功しました！\n登録商品数: " + Object.keys(userDB).length + "件");
-            } catch (err) {
-                alert("ファイルの読み込みに失敗しました。");
-            }
-            e.target.value = '';
-        };
-        reader.readAsText(file);
-    });
 
     // アプリ起動時の初期化
     initSelectBoxes();
