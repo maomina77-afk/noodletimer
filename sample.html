@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>JANコード商品名検索</title>
+</head>
+<body>
+    <h1>商品検索アプリ</h1>
+    <p>JANコードを入力してください:</p>
+    <input type="text" id="janInput" placeholder="例: 4901330011332">
+    <button onclick="searchItem()">検索</button>
+    
+    <h2>検索結果:</h2>
+    <p id="result">ここに商品名が表示されます</p>
+
+    <script>
+        async function searchItem() {
+            const clientId = 'dmVyPTIwMjUwNyZpZD1VUXFzQkpCSllzJmhhc2g9TlRaa1l6SXlNemMyTUdRek5qUmtNdw'; // アプリのClient ID
+            const jan = document.getElementById('janInput').value.trim();
+            const resultEl = document.getElementById('result');
+
+            if (!jan) {
+                resultEl.textContent = 'JANコードを入力してください。';
+                return;
+            }
+
+            // Yahooショッピング商品検索API v3のURL
+            const url = `https://yahooapis.jp{clientId}&jan_code=${jan}`;
+
+            resultEl.textContent = '検索中...';
+
+            try {
+                // 注: ブラウザから直接叩く場合はCORS制限があるためサーバー経由やプロキシが必要です
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.hits && data.hits.length > 0) {
+                    const itemName = data.hits[0].name;
+                    resultEl.textContent = itemName;
+                } else {
+                    resultEl.textContent = '商品が見つかりませんでした。';
+                }
+            } catch (error) {
+                resultEl.textContent = 'エラーが発生しました: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
