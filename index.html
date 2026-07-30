@@ -21,6 +21,10 @@
         .btn-start-timer { background-color: #28a745; }
         .btn-stop { background-color: #dc3545; }
         
+        /* ファイル入力用のラベルをボタン風にする */
+        .btn-import-label { display: block; background-color: #512da8; color: white; padding: 15px 20px; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; text-align: center; }
+        .btn-import-label:active { background-color: #4527a0; }
+        
         #reader { width: 100%; border-radius: 8px; overflow: hidden; }
         #reader video { object-fit: cover; }
         
@@ -29,6 +33,10 @@
         
         .timer-display { font-size: 6em; font-weight: bold; color: #4fc1ff; text-align: center; line-height: 1; margin: 20px 0; font-family: monospace; }
         .status-msg { font-size: 1.1em; color: #ce9178; margin-top: 10px; }
+
+        .register-form { margin-top: 20px; background-color: #333; padding: 15px; border-radius: 8px; border: 1px dashed #555; text-align: left; }
+        .register-form input[type="text"], .register-form input[type="number"] { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; background-color: #1e1e1e; color: #fff; border: 1px solid #555; border-radius: 4px; font-size: 1em; }
+        .register-form input[type="number"] { width: 80px; text-align: right; margin-bottom: 0; }
     </style>
 </head>
 <body>
@@ -45,13 +53,30 @@
         <button id="btnStopScan" class="btn-stop" style="display: none;">⏹ スキャン停止</button>
     </div>
 
-    <!-- 結果・タイマー画面 (初期は非表示) -->
+    <!-- 結果・タイマー画面 -->
     <div class="panel" id="timerPanel" style="display: none;">
         <div id="resultArea">
             <div class="noodle-info" id="noodleName">商品名</div>
-            <div class="time-info">待ち時間: <span id="noodleTime">--</span></div>
+            <div class="time-info" id="timeInfoWrapper">待ち時間: <span id="noodleTime">--</span></div>
             <div class="status-msg" id="statusMessage"></div>
-            <button id="btnStartTimer" class="btn-start-timer" disabled>▶ タイマー開始</button>
+            
+            <button id="btnStartTimer" class="btn-start-timer" style="display: none;">▶ タイマー開始</button>
+
+            <!-- 新規登録フォーム -->
+            <div id="registerArea" class="register-form" style="display: none;">
+                <h4 style="margin: 0 0 10px 0; color: #4fc1ff;">📝 新しい商品を登録</h4>
+                <label style="font-size: 0.9em;">商品名</label>
+                <input type="text" id="regName" placeholder="例: 俺の塩">
+                
+                <label style="font-size: 0.9em; display: block; margin-top: 5px;">待ち時間（分）</label>
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                    <input type="number" id="regTime" value="3" min="1" max="15">
+                    <span>分</span>
+                </div>
+                
+                <button id="btnRegisterAndStart" style="background-color: #d1691c;">💾 登録してタイマー開始</button>
+            </div>
+
             <button id="btnRetryScan" style="background-color: #555;">🔄 再スキャン</button>
         </div>
 
@@ -60,12 +85,22 @@
             <button id="btnCancelTimer" class="btn-stop">■ 中止</button>
         </div>
     </div>
+
+    <!-- データ管理画面 (スキャン待機時のみ表示) -->
+    <div class="panel" id="dataPanel">
+        <h3 style="margin-top: 0; color: #4fc1ff;">💾 データ管理</h3>
+        <p style="font-size: 0.9em; color: #888;">自分で登録したデータのバックアップ・復元</p>
+        
+        <button id="btnExport" style="background-color: #28a745;">📤 データを書き出し (保存)</button>
+        
+        <label for="fileImport" class="btn-import-label">📥 データを読み込み (復元)</label>
+        <input type="file" id="fileImport" accept=".json" style="display: none;">
+    </div>
 </div>
 
 <script>
-    // === 1. カップ麺データベース (JANコード: 商品情報) ===
-    const CUP_NOODLE_DB = {
-        // --- 🍜 定番カップラーメン ---
+    // === 1. 基本データベース ===
+    const DEFAULT_DB = {
         "4902105244316": { name: "カップヌードル (通常)", seconds: 180 }, 
         "4902105244323": { name: "カップヌードル カレー", seconds: 180 }, 
         "4902105244347": { name: "カップヌードル シーフード", seconds: 180 }, 
@@ -75,30 +110,27 @@
         "4901071227329": { name: "スーパーカップ1.5倍 みそ", seconds: 180 }, 
         "4902881073604": { name: "チャルメラカップ しょうゆ", seconds: 180 }, 
         "4902702004002": { name: "カップスター しょうゆ", seconds: 180 }, 
-
-        // --- 🥢 カップ焼きそば ---
         "4902885000686": { name: "ペヤング ソースやきそば", seconds: 180 }, 
         "4902885001454": { name: "ペヤング ソースやきそば 超大盛", seconds: 180 }, 
         "4902105022122": { name: "日清焼そばU.F.O.", seconds: 180 }, 
         "4902105244620": { name: "日清焼そばU.F.O. 大盛", seconds: 180 }, 
         "4902881435280": { name: "一平ちゃん 夜店の焼そば", seconds: 180 }, 
         "4901990365174": { name: "昔ながらのソース焼そば", seconds: 180 }, 
-
-        // --- 🦊 カップうどん・そば ---
         "4902105240011": { name: "日清のどん兵衛 きつねうどん(西)", seconds: 300 }, 
         "4902105032633": { name: "日清のどん兵衛 きつねうどん(東)", seconds: 300 }, 
         "4902105282670": { name: "日清のどん兵衛 肉うどん", seconds: 300 }, 
         "4902105240059": { name: "日清のどん兵衛 天ぷらそば", seconds: 180 }, 
         "4901990363989": { name: "赤いきつねうどん", seconds: 300 }, 
         "4901990363996": { name: "緑のたぬき天そば", seconds: 180 }, 
-
-        // --- 🍥 少し特殊な待ち時間の商品 ---
         "4901990333241": { name: "マルちゃん正麺 芳醇こく醤油", seconds: 300 }, 
         "4902105273760": { name: "ラ王 背脂醤油", seconds: 300 }, 
-        "4901071228494": { name: "飲み干す一杯 担々麺", seconds: 180 } 
+        "4901071228494": { name: "飲み干す一杯 担々麺", seconds: 180 }
     };
 
-    // === 2. 音声再生機能 (最大音量) ===
+    // === 2. ユーザー登録データベースの読み込み ===
+    let userDB = JSON.parse(localStorage.getItem('cup_noodle_custom_db')) || {};
+    let activeDB = { ...DEFAULT_DB, ...userDB };
+
     let audioContext;
     function playBeep() {
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -115,24 +147,25 @@
         osc.stop(audioContext.currentTime + 1.5);
     }
 
-    // === 3. UI・状態管理 ===
     const scanPanel = document.getElementById('scanPanel');
     const timerPanel = document.getElementById('timerPanel');
+    const dataPanel = document.getElementById('dataPanel');
     const resultArea = document.getElementById('resultArea');
     const countdownArea = document.getElementById('countdownArea');
     const btnStartScan = document.getElementById('btnStartScan');
     const btnStopScan = document.getElementById('btnStopScan');
+    const btnStartTimer = document.getElementById('btnStartTimer');
+    const registerArea = document.getElementById('registerArea');
     
     let html5QrCode;
     let targetSeconds = 0;
     let currentInterval = null;
-    let isCameraRunning = false; // カメラの起動状態を管理するフラグを追加
+    let isCameraRunning = false; 
+    let currentBarcode = "";
 
-    // === 4. バーコードスキャン処理 ===
+    // === 3. バーコードスキャン処理 ===
     btnStartScan.addEventListener('click', () => {
-        if (!html5QrCode) {
-            html5QrCode = new Html5Qrcode("reader");
-        }
+        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
         
         btnStartScan.style.display = 'none';
         btnStopScan.style.display = 'block';
@@ -143,15 +176,12 @@
             { facingMode: "environment" },
             config,
             (decodedText, decodedResult) => {
-                // 読み取り成功時
                 stopScanner();
                 processBarcode(decodedText);
             },
-            (errorMessage) => {
-                // エラーは無視
-            }
+            (errorMessage) => {}
         ).then(() => {
-            isCameraRunning = true; // 起動成功時にフラグをオン
+            isCameraRunning = true;
         }).catch((err) => {
             alert("カメラの起動に失敗しました。権限を確認してください。\n詳細: " + err);
             btnStartScan.style.display = 'block';
@@ -163,10 +193,9 @@
     btnStopScan.addEventListener('click', stopScanner);
 
     function stopScanner() {
-        // 修正: 独自のフラグ(isCameraRunning)を使って確実に停止処理を行う
         if (html5QrCode && isCameraRunning) {
             html5QrCode.stop().then(() => {
-                html5QrCode.clear(); // 画面をクリア
+                html5QrCode.clear();
                 isCameraRunning = false;
                 btnStartScan.style.display = 'block';
                 btnStopScan.style.display = 'none';
@@ -181,31 +210,66 @@
 
     function processBarcode(barcode) {
         scanPanel.style.display = 'none';
+        dataPanel.style.display = 'none'; // データ管理パネルを隠す
         timerPanel.style.display = 'block';
         resultArea.style.display = 'block';
         countdownArea.style.display = 'none';
+        currentBarcode = barcode;
 
-        const item = CUP_NOODLE_DB[barcode];
+        const item = activeDB[barcode];
         
         if (item) {
             document.getElementById('noodleName').textContent = item.name;
             document.getElementById('noodleTime').textContent = (item.seconds / 60) + "分";
             document.getElementById('statusMessage').textContent = "バーコード: " + barcode;
             document.getElementById('statusMessage').style.color = "#ce9178";
+            
             targetSeconds = item.seconds;
-            document.getElementById('btnStartTimer').disabled = false;
+            btnStartTimer.style.display = 'block';
+            registerArea.style.display = 'none';
+            document.getElementById('timeInfoWrapper').style.display = 'block';
         } else {
             document.getElementById('noodleName').textContent = "未登録の商品";
-            document.getElementById('noodleTime').textContent = "--";
-            document.getElementById('statusMessage').textContent = "登録されていないバーコードです: " + barcode;
+            document.getElementById('statusMessage').textContent = "バーコード: " + barcode;
             document.getElementById('statusMessage').style.color = "#dc3545";
-            targetSeconds = 0;
-            document.getElementById('btnStartTimer').disabled = true;
+            
+            btnStartTimer.style.display = 'none';
+            registerArea.style.display = 'block';
+            document.getElementById('timeInfoWrapper').style.display = 'none';
+            
+            document.getElementById('regName').value = "";
+            document.getElementById('regTime').value = "3";
         }
     }
 
+    // === 4. 新規商品の登録処理 ===
+    document.getElementById('btnRegisterAndStart').addEventListener('click', () => {
+        const nameInput = document.getElementById('regName').value.trim();
+        const timeInput = parseInt(document.getElementById('regTime').value);
+
+        if (nameInput === "") {
+            alert("商品名を入力してください。");
+            return;
+        }
+        if (isNaN(timeInput) || timeInput <= 0) {
+            alert("正しい待ち時間（1分以上）を入力してください。");
+            return;
+        }
+
+        const newSeconds = timeInput * 60;
+        userDB[currentBarcode] = { name: nameInput, seconds: newSeconds };
+        
+        localStorage.setItem('cup_noodle_custom_db', JSON.stringify(userDB));
+        activeDB[currentBarcode] = { name: nameInput, seconds: newSeconds };
+        targetSeconds = newSeconds;
+
+        executeTimer();
+    });
+
     // === 5. タイマー処理 ===
-    document.getElementById('btnStartTimer').addEventListener('click', () => {
+    btnStartTimer.addEventListener('click', executeTimer);
+
+    function executeTimer() {
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
         if (audioContext.state === 'suspended') audioContext.resume();
 
@@ -225,7 +289,7 @@
                 playBeep(); 
             }
         }, 1000);
-    });
+    }
 
     function updateTimerDisplay(sec) {
         if (sec < 0) sec = 0;
@@ -235,7 +299,6 @@
             String(m).padStart(2, '0') + ":" + String(s).padStart(2, '0');
     }
 
-    // 中止・再スキャン処理
     document.getElementById('btnCancelTimer').addEventListener('click', resetApp);
     document.getElementById('btnRetryScan').addEventListener('click', resetApp);
 
@@ -243,7 +306,64 @@
         if (currentInterval) clearInterval(currentInterval);
         timerPanel.style.display = 'none';
         scanPanel.style.display = 'block';
+        dataPanel.style.display = 'block'; // 再表示
     }
+
+    // === 6. データのバックアップ（書き出し）と復元（読み込み） ===
+    
+    // 書き出し (Export)
+    document.getElementById('btnExport').addEventListener('click', () => {
+        if (Object.keys(userDB).length === 0) {
+            alert("自分で登録したデータがまだありません。");
+            return;
+        }
+        // userDBをJSON文字列化
+        const dataStr = JSON.stringify(userDB, null, 2);
+        // Blobオブジェクトを作成
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
+        // ダウンロード用の一時的なリンクを作成してクリック
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "cup_noodle_custom_db.json";
+        document.body.appendChild(a);
+        a.click();
+        
+        // 後処理
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    // 読み込み (Import)
+    document.getElementById('fileImport').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                // ファイルの中身をJSONとしてパース
+                const importedDB = JSON.parse(event.target.result);
+                
+                // 現在のuserDBと読み込んだデータを結合 (重複時は読み込んだデータで上書き)
+                userDB = { ...userDB, ...importedDB };
+                
+                // localStorageに保存
+                localStorage.setItem('cup_noodle_custom_db', JSON.stringify(userDB));
+                
+                // 実行中のDBにも反映
+                activeDB = { ...DEFAULT_DB, ...userDB };
+                
+                alert("データの読み込み(統合)に成功しました！\n登録商品数: " + Object.keys(userDB).length + "件");
+            } catch (err) {
+                alert("ファイルの読み込みに失敗しました。正しいJSONファイル(cup_noodle_custom_db.json)を選択してください。");
+            }
+            // 選択状態をリセット (同じファイルを再度選べるようにする)
+            e.target.value = '';
+        };
+        reader.readAsText(file);
+    });
 </script>
 </body>
 </html>
