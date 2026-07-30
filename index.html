@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>カップ麺バーコードタイマー</title>
+    <title>Noodle Timer V1.02</title>
     <!-- バーコードスキャン用のライブラリ -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -47,7 +47,7 @@
 </head>
 <body>
 
-<div class="header">カップ麺自動判別タイマー</div>
+<div class="header">Noodle Timer V1.02</div>
 
 <div class="container">
     <!-- 1. スキャン画面 -->
@@ -59,7 +59,7 @@
         <button id="btnStopScan" class="btn-stop" style="display: none;">⏹ スキャン停止</button>
     </div>
 
-    <!-- 2. リストから手動選択画面 (新規追加) -->
+    <!-- 2. リストから手動選択画面 -->
     <div class="panel" id="manualSelectPanel">
         <h3 style="margin-top: 0; color: #4ec9b0;">📋 リストから選ぶ</h3>
         <select id="makerSelect">
@@ -71,7 +71,7 @@
         <button id="btnStartManualSelect" class="btn-start-timer" disabled>▶ タイマー開始</button>
     </div>
 
-    <!-- 3. 手動タイマー画面 (新規追加) -->
+    <!-- 3. 手動タイマー画面 -->
     <div class="panel" id="manualTimerPanel">
         <h3 style="margin-top: 0; color: #ce9178;">⏱ 手動でセット</h3>
         <div style="display: flex; gap: 10px; justify-content: space-between; margin-bottom: 15px;">
@@ -94,7 +94,7 @@
         <input type="file" id="fileImport" accept=".json" style="display: none;">
     </div>
 
-    <!-- 結果・カウントダウン画面 (実行時のみ表示) -->
+    <!-- 結果・カウントダウン画面 -->
     <div class="panel" id="timerPanel" style="display: none;">
         <!-- スキャン結果確認用 -->
         <div id="resultArea">
@@ -104,15 +104,32 @@
             
             <button id="btnStartTimerFromScan" class="btn-start-timer" style="display: none;">▶ タイマー開始</button>
 
-            <!-- 新規登録フォーム -->
+            <!-- 新規登録フォーム（Yahoo! API連携対応） -->
             <div id="registerArea" class="register-form" style="display: none;">
                 <h4 style="margin: 0 0 10px 0; color: #4fc1ff;">📝 新しい商品を登録</h4>
-                <label style="font-size: 0.9em;">商品名</label>
-                <input type="text" id="regName" placeholder="例: 俺の塩">
-                <label style="font-size: 0.9em; display: block; margin-top: 5px;">待ち時間（分）</label>
-                <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 0.85em; color: #888;">Yahoo! API アプリケーションID (Client ID)</label>
+                    <input type="text" id="yahooAppId" placeholder="ここにYahoo! APIのClient IDを入力" style="margin-bottom: 5px;">
+                    <button id="btnFetchYahoo" style="background-color: #512da8; padding: 10px; font-size: 0.9em; margin-top: 0;">🔍 Yahoo! APIで商品情報を検索</button>
+                </div>
+
+                <label style="font-size: 0.9em;">メーカー名 / 商品名</label>
+                <input type="text" id="regName" placeholder="例: 日清食品 カップヌードル">
+                
+                <label style="font-size: 0.9em; display: block; margin-top: 5px;">分類（ジャンル）</label>
+                <input type="text" id="regGenre" placeholder="例: カップラーメン">
+
+                <label style="font-size: 0.9em; display: block; margin-top: 5px;">待ち時間を選択して登録</label>
+                <div style="display: flex; gap: 10px; margin: 5px 0 15px 0;">
+                    <button type="button" class="btn-reg-time-preset" data-min="3" style="margin-top:0; background-color:#d1691c; padding:8px;">3分</button>
+                    <button type="button" class="btn-reg-time-preset" data-min="4" style="margin-top:0; background-color:#555; padding:8px;">4分</button>
+                    <button type="button" class="btn-reg-time-preset" data-min="5" style="margin-top:0; background-color:#555; padding:8px;">5分</button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
                     <input type="number" id="regTime" value="3" min="1" max="15" class="time-input">
-                    <span>分</span>
+                    <span>分 (カスタム指定)</span>
                 </div>
                 <button id="btnRegisterAndStart" style="background-color: #d1691c;">💾 登録してタイマー開始</button>
             </div>
@@ -129,37 +146,32 @@
 </div>
 
 <script>
-    // === 1. 基本データベース (ご指定のデータを統合) ===
+    // === 1. 基本データベース ===
     const DEFAULT_DB = {
-        "4902105261361": { "name": "日清ラ王焙煎ごま坦々", "seconds": 300 },
-        "4902105244316": { "name": "日清 カップヌードル", "seconds": 180 },
-        "4902105244323": { "name": "日清 カップヌードル カレー", "seconds": 180 },
-        "4902105244347": { "name": "日清 カップヌードル シーフード", "seconds": 180 },
-        "4902105244354": { "name": "日清 カップヌードル チリトマト", "seconds": 180 },
-        "4902105242855": { "name": "日清 カップヌードル トムヤムクン", "seconds": 180 },
-        "4902105022122": { "name": "日清焼そばU.F.O.", "seconds": 180 },
-        "4902105244620": { "name": "日清焼そばU.F.O. 大盛", "seconds": 180 },
-        "4902105240011": { "name": "日清のどん兵衛 きつねうどん", "seconds": 300 },
-        "4902105240059": { "name": "日清のどん兵衛 天ぷらそば", "seconds": 180 },
-        "4901990363989": { "name": "マルちゃん 赤いきつねうどん", "seconds": 300 },
-        "4901990363996": { "name": "マルちゃん 緑のたぬき天そば", "seconds": 180 },
-        "4901990324423": { "name": "マルちゃん ごつ盛り ソース焼そば", "seconds": 180 },
-        "4901990365174": { "name": "マルちゃん 昔ながらのソース焼そば", "seconds": 180 },
-        "4901990333241": { "name": "マルちゃん正麺 芳醇こく醤油", "seconds": 300 },
-        "4902885000686": { "name": "ペヤング ソースやきそば", "seconds": 180 },
-        "4902885001454": { "name": "ペヤング ソースやきそば 超大盛", "seconds": 180 },
-        "4902885004004": { "name": "ペヤング 激辛やきそば", "seconds": 180 },
-        "4902881435280": { "name": "明星 一平ちゃん夜店の焼そば", "seconds": 180 },
-        "4902881073604": { "name": "明星 チャルメラカップ しょうゆ", "seconds": 180 },
-        "4901071227305": { "name": "スーパーカップ1.5倍 しょうゆ", "seconds": 180 },
-        "4901071227329": { "name": "スーパーカップ1.5倍 みそ", "seconds": 180 },
-        "4901071227312": { "name": "スーパーカップ1.5倍 とんこつ", "seconds": 180 },
-        "4901071226506": { "name": "わかめラーメン ごま・しょうゆ", "seconds": 180 },
-        "4902702004002": { "name": "サッポロ一番 カップスター しょうゆ", "seconds": 180 }
+        "4902881073604": { name: "チャルメラカップ しょうゆ", seconds: 180 }, 
+        "4902702004002": { name: "マルタイ 長崎ちゃんぽん", seconds: 180 }, 
+        "4902885000686": { name: "ペヤング ソースやきそば", seconds: 180 }, 
+        "4902885001454": { name: "ペヤング ソースやきそば 超大盛", seconds: 180 }, 
+        "4902105022122": { name: "日清焼そばU.F.O.", seconds: 180 }, 
+        "4902105032633": { name: "日清のどん兵衛 きつねうどん(東)", seconds: 300 }, 
+        "4902105282670": { name: "日清のどん兵衛 肉うどん", seconds: 300 }, 
+        "4902105273760": { name: "U.F.O醤油まぜそば 濃い濃いラー油マヨ付き", seconds: 300 }, 
+        "4902105280461": { name: "日清ラ王 背脂醤油",seconds: 300  },
+        "4902105280478": { name: "日清ラ王 とろ熟味噌",seconds: 300  },
+        "4902105280485": { name: "日清ラ王 とろまろ塩",seconds: 300  },
+        "4902105273012": { name: "日清ラ王焙煎ごま坦々",seconds: 300  },
+        "4902885004004": { name: "ペヤング 激辛やきそば",seconds: 180  },
     };
 
     let userDB = JSON.parse(localStorage.getItem('cup_noodle_custom_db')) || {};
     let activeDB = { ...DEFAULT_DB, ...userDB };
+
+    // APIキーの永続化
+    const savedAppId = localStorage.getItem('yahoo_app_id') || "";
+    document.getElementById('yahooAppId').value = savedAppId;
+    document.getElementById('yahooAppId').addEventListener('input', (e) => {
+        localStorage.setItem('yahoo_app_id', e.target.value.trim());
+    });
 
     // === 音声・UI・状態管理 ===
     let audioContext;
@@ -284,7 +296,7 @@
         }
     });
 
-    // === 4. バーコードスキャン処理 ===
+    // === 4. バーコードスキャン処理 & Yahoo! API連携 ===
     document.getElementById('btnStartScan').addEventListener('click', () => {
         if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
         document.getElementById('btnStartScan').style.display = 'none';
@@ -348,9 +360,61 @@
             document.getElementById('timeInfoWrapper').style.display = 'none';
             
             document.getElementById('regName').value = "";
+            document.getElementById('regGenre').value = "";
             document.getElementById('regTime').value = "3";
         }
     }
+
+    // Yahoo! API (v3 itemSearch) を使ったJANコード検索
+    document.getElementById('btnFetchYahoo').addEventListener('click', async () => {
+        const appId = document.getElementById('yahooAppId').value.trim();
+        if (!appId) {
+            alert("Yahoo! APIのClient ID（アプリケーションID）を入力してください。");
+            return;
+        }
+
+        const btn = document.getElementById('btnFetchYahoo');
+        btn.disabled = true;
+        btn.textContent = "検索中...";
+
+        // CORS回避のため、一般的な公開プロキシまたはJSONP代替として直接fetch（※環境によってはCORSエラーになるため必要に応じてCORS拡張やサーバー経由へ変更してください）
+        const apiUrl = `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${appId}&jan_code=${currentBarcode}`;
+
+        try {
+            // ブラウザの制約(CORS)を考慮し、CORS非対応の場合は通常エラーになります
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error("API通信に失敗しました (HTTP " + response.status + ")");
+            
+            const data = await response.json();
+            if (data.totalResultsReturned > 0 && data.hits && data.hits.length > 0) {
+                const hit = data.hits[0];
+                const brandName = hit.brand ? hit.brand.name : "";
+                const productName = hit.name || "";
+                const genreName = hit.genreCategory ? hit.genreCategory.name : "";
+
+                document.getElementById('regName').value = (brandName ? brandName + " " : "") + productName;
+                document.getElementById('regGenre').value = genreName;
+                alert("Yahoo!ショッピングから商品情報を取得しました！");
+            } else {
+                alert("Yahoo!ショッピングに該当するJANコードのデータが見つかりませんでした。手動で入力してください。");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("APIの取得に失敗しました。ブラウザのCORS制限等により直接呼び出せない場合があります。\nエラー詳細: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "🔍 Yahoo! APIで商品情報を検索";
+        }
+    });
+
+    // 登録画面の待ち時間プリセットボタン
+    document.querySelectorAll('.btn-reg-time-preset').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.btn-reg-time-preset').forEach(b => b.style.backgroundColor = '#555');
+            e.target.style.backgroundColor = '#d1691c';
+            document.getElementById('regTime').value = e.target.getAttribute('data-min');
+        });
+    });
 
     // スキャンからのタイマー開始
     document.getElementById('btnStartTimerFromScan').addEventListener('click', () => {
@@ -371,6 +435,7 @@
         activeDB[currentBarcode] = { name: nameInput, seconds: newSeconds };
         
         targetSeconds = newSeconds;
+        startCountdownName = nameInput;
         startCountdownMode(nameInput);
     });
 
@@ -425,7 +490,7 @@
         manualSelectPanel.style.display = 'block';
         manualTimerPanel.style.display = 'block';
         dataPanel.style.display = 'block';
-        initSelectBoxes(); // 登録データが増えた時のためにリストを更新
+        initSelectBoxes(); 
     }
 
     // === 6. データのバックアップ/復元 ===
