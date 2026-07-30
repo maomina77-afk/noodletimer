@@ -516,6 +516,42 @@
         initSelectBoxes(); 
     }
 
+
+    // === 6. データのバックアップ/復元 ===
+    document.getElementById('btnExport').addEventListener('click', () => {
+        if (Object.keys(userDB).length === 0) return alert("自分で登録したデータがまだありません。");
+        const blob = new Blob([JSON.stringify(userDB, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "cup_noodle_custom_db.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('fileImport').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const importedDB = JSON.parse(event.target.result);
+                userDB = { ...userDB, ...importedDB };
+                localStorage.setItem('cup_noodle_custom_db', JSON.stringify(userDB));
+                activeDB = { ...DEFAULT_DB, ...userDB };
+                initSelectBoxes();
+                alert("データの読み込みに成功しました！\n登録商品数: " + Object.keys(userDB).length + "件");
+            } catch (err) {
+                alert("ファイルの読み込みに失敗しました。");
+            }
+            e.target.value = '';
+        };
+        reader.readAsText(file);
+    });
+
+
     // アプリ起動時の初期化
     initSelectBoxes();
 </script>
