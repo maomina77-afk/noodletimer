@@ -64,39 +64,38 @@
 
 <script>
     // === 1. カップ麺データベース (JANコード: 商品情報) ===
-    // 実際によく使われるバーコード(JANコード)と待ち時間を登録しています
     const CUP_NOODLE_DB = {
         // --- 🍜 定番カップラーメン ---
-        "4902105244316": { name: "カップヌードル (通常)", seconds: 180 }, // 3分
-        "4902105244323": { name: "カップヌードル カレー", seconds: 180 }, // 3分
-        "4902105244347": { name: "カップヌードル シーフード", seconds: 180 }, // 3分
-        "4902105244354": { name: "カップヌードル チリトマト", seconds: 180 }, // 3分
-        "4901071227312": { name: "スーパーカップ1.5倍 豚骨", seconds: 180 }, // 3分
-        "4901071227305": { name: "スーパーカップ1.5倍 しょうゆ", seconds: 180 }, // 3分
-        "4901071227329": { name: "スーパーカップ1.5倍 みそ", seconds: 180 }, // 3分
-        "4902881073604": { name: "チャルメラカップ しょうゆ", seconds: 180 }, // 3分
-        "4902702004002": { name: "カップスター しょうゆ", seconds: 180 }, // 3分
+        "4902105244316": { name: "カップヌードル (通常)", seconds: 180 }, 
+        "4902105244323": { name: "カップヌードル カレー", seconds: 180 }, 
+        "4902105244347": { name: "カップヌードル シーフード", seconds: 180 }, 
+        "4902105244354": { name: "カップヌードル チリトマト", seconds: 180 }, 
+        "4901071227312": { name: "スーパーカップ1.5倍 豚骨", seconds: 180 }, 
+        "4901071227305": { name: "スーパーカップ1.5倍 しょうゆ", seconds: 180 }, 
+        "4901071227329": { name: "スーパーカップ1.5倍 みそ", seconds: 180 }, 
+        "4902881073604": { name: "チャルメラカップ しょうゆ", seconds: 180 }, 
+        "4902702004002": { name: "カップスター しょうゆ", seconds: 180 }, 
 
         // --- 🥢 カップ焼きそば ---
-        "4902885000686": { name: "ペヤング ソースやきそば", seconds: 180 },[cite: 1] // 3分
-        "4902885001454": { name: "ペヤング ソースやきそば 超大盛", seconds: 180 }, // 3分
-        "4902105022122": { name: "日清焼そばU.F.O.", seconds: 180 }, // 3分
-        "4902105244620": { name: "日清焼そばU.F.O. 大盛", seconds: 180 }, // 3分
-        "4902881435280": { name: "一平ちゃん 夜店の焼そば", seconds: 180 }, // 3分
-        "4901990365174": { name: "昔ながらのソース焼そば", seconds: 180 }, // 3分
+        "4902885000686": { name: "ペヤング ソースやきそば", seconds: 180 }, 
+        "4902885001454": { name: "ペヤング ソースやきそば 超大盛", seconds: 180 }, 
+        "4902105022122": { name: "日清焼そばU.F.O.", seconds: 180 }, 
+        "4902105244620": { name: "日清焼そばU.F.O. 大盛", seconds: 180 }, 
+        "4902881435280": { name: "一平ちゃん 夜店の焼そば", seconds: 180 }, 
+        "4901990365174": { name: "昔ながらのソース焼そば", seconds: 180 }, 
 
         // --- 🦊 カップうどん・そば ---
-        "4902105240011": { name: "日清のどん兵衛 きつねうどん(西)", seconds: 300 }, // 5分
-        "4902105032633": { name: "日清のどん兵衛 きつねうどん(東)", seconds: 300 }, // 5分
-        "4902105282670": { name: "日清のどん兵衛 肉うどん", seconds: 300 }, // 5分
-        "4902105240059": { name: "日清のどん兵衛 天ぷらそば", seconds: 180 }, // 3分
-        "4901990363989": { name: "赤いきつねうどん", seconds: 300 }, // 5分
-        "4901990363996": { name: "緑のたぬき天そば", seconds: 180 }, // 3分
+        "4902105240011": { name: "日清のどん兵衛 きつねうどん(西)", seconds: 300 }, 
+        "4902105032633": { name: "日清のどん兵衛 きつねうどん(東)", seconds: 300 }, 
+        "4902105282670": { name: "日清のどん兵衛 肉うどん", seconds: 300 }, 
+        "4902105240059": { name: "日清のどん兵衛 天ぷらそば", seconds: 180 }, 
+        "4901990363989": { name: "赤いきつねうどん", seconds: 300 }, 
+        "4901990363996": { name: "緑のたぬき天そば", seconds: 180 }, 
 
         // --- 🍥 少し特殊な待ち時間の商品 ---
-        "4901990333241": { name: "マルちゃん正麺 芳醇こく醤油", seconds: 300 }, // 5分
-        "4902105273760": { name: "ラ王 背脂醤油", seconds: 300 }, // 5分
-        "4901071228494": { name: "飲み干す一杯 担々麺", seconds: 180 } // 3分
+        "4901990333241": { name: "マルちゃん正麺 芳醇こく醤油", seconds: 300 }, 
+        "4902105273760": { name: "ラ王 背脂醤油", seconds: 300 }, 
+        "4901071228494": { name: "飲み干す一杯 担々麺", seconds: 180 } 
     };
 
     // === 2. 音声再生機能 (最大音量) ===
@@ -109,9 +108,9 @@
         osc.connect(gain);
         gain.connect(audioContext.destination);
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, audioContext.currentTime); // 高めのピッチ
-        gain.gain.setValueAtTime(1.0, audioContext.currentTime);     // 音量MAX
-        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.5); // 1.5秒鳴らす
+        osc.frequency.setValueAtTime(880, audioContext.currentTime); 
+        gain.gain.setValueAtTime(1.0, audioContext.currentTime);     
+        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.5); 
         osc.start(audioContext.currentTime);
         osc.stop(audioContext.currentTime + 1.5);
     }
@@ -127,6 +126,7 @@
     let html5QrCode;
     let targetSeconds = 0;
     let currentInterval = null;
+    let isCameraRunning = false; // カメラの起動状態を管理するフラグを追加
 
     // === 4. バーコードスキャン処理 ===
     btnStartScan.addEventListener('click', () => {
@@ -137,7 +137,6 @@
         btnStartScan.style.display = 'none';
         btnStopScan.style.display = 'block';
 
-        // カメラ設定 (背面カメラを優先、JANコード(EAN-13)等の1Dバーコードに限定)
         const config = { fps: 10, qrbox: { width: 250, height: 100 } };
         
         html5QrCode.start(
@@ -149,20 +148,31 @@
                 processBarcode(decodedText);
             },
             (errorMessage) => {
-                // 読み取り中のエラーは無視 (毎フレーム発生するため)
+                // エラーは無視
             }
-        ).catch((err) => {
+        ).then(() => {
+            isCameraRunning = true; // 起動成功時にフラグをオン
+        }).catch((err) => {
             alert("カメラの起動に失敗しました。権限を確認してください。\n詳細: " + err);
             btnStartScan.style.display = 'block';
             btnStopScan.style.display = 'none';
+            isCameraRunning = false;
         });
     });
 
     btnStopScan.addEventListener('click', stopScanner);
 
     function stopScanner() {
-        if (html5QrCode && html5QrCode.isScanning) {
+        // 修正: 独自のフラグ(isCameraRunning)を使って確実に停止処理を行う
+        if (html5QrCode && isCameraRunning) {
             html5QrCode.stop().then(() => {
+                html5QrCode.clear(); // 画面をクリア
+                isCameraRunning = false;
+                btnStartScan.style.display = 'block';
+                btnStopScan.style.display = 'none';
+            }).catch((err) => {
+                console.warn("停止処理エラー:", err);
+                isCameraRunning = false;
                 btnStartScan.style.display = 'block';
                 btnStopScan.style.display = 'none';
             });
@@ -196,7 +206,6 @@
 
     // === 5. タイマー処理 ===
     document.getElementById('btnStartTimer').addEventListener('click', () => {
-        // 音声コンテキストの初期化（ユーザーアクション必須のためここで発火）
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
         if (audioContext.state === 'suspended') audioContext.resume();
 
@@ -213,7 +222,7 @@
             if (remain <= 0) {
                 clearInterval(currentInterval);
                 document.getElementById('timerDisplay').textContent = "完成！";
-                playBeep(); // 最大音量のアラームを鳴らす
+                playBeep(); 
             }
         }, 1000);
     });
