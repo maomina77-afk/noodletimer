@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Noodle Timer V1.03</title>
+    <title>Noodle Timer V1.04</title>
     <!-- バーコードスキャン用のライブラリ -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -31,7 +31,7 @@
         .noodle-info { font-size: 1.5em; color: #dcdcaa; font-weight: bold; margin: 15px 0; }
         .time-info { font-size: 1.2em; color: #fff; }
         
-        .timer-display { font-size: 6em; font-weight: bold; color: #4fc1ff; text-align: center; line-height: 1; margin: 20px 0; font-family: monospace; }
+        .timer-display { font-size: 6em; font-weight: bold; color: #4fc1ff; text-align: center; line-height: 1; margin: 20px 0; font-family: monospace; position: relative; z-index: 10; }
         .status-msg { font-size: 1.1em; color: #ce9178; margin-top: 10px; }
 
         .register-form { margin-top: 20px; background-color: #333; padding: 15px; border-radius: 8px; border: 1px dashed #555; text-align: left; }
@@ -43,11 +43,64 @@
             border-radius: 4px; font-size: 1em; 
         }
         .time-input { width: 80px; text-align: right; margin-bottom: 0; font-size: 1.2em; }
+
+        /* =========================================
+           ★V1.04 追加: アニメーション用のCSS
+           ========================================= */
+        .animation-container {
+            position: relative;
+            width: 100%;
+            height: 100px; /* アニメーションエリアの高さ */
+            margin-top: -10px;
+            margin-bottom: -10px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- ラーメン共通スタイル（湯気） --- */
+        .steam {
+            width: 15px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            filter: blur(5px);
+            position: absolute;
+            bottom: 10px;
+            opacity: 0;
+            animation: steamLoop 2s infinite ease-out;
+        }
+        @keyframes steamLoop {
+            0% { transform: translateY(0) scaleX(1); opacity: 0; }
+            15% { opacity: 0.8; }
+            50% { transform: translateY(-40px) scaleX(1.5); opacity: 0.4; }
+            100% { transform: translateY(-80px) scaleX(2); opacity: 0; }
+        }
+
+        /* --- 焼きそば共通スタイル（湯切りポタポタ） --- */
+        .drip {
+            width: 8px;
+            height: 8px;
+            background-color: #4fc1ff; /* タイマーと同じ水色 */
+            border-radius: 50%;
+            position: absolute;
+            top: 20px;
+            opacity: 0;
+            animation: dripLoop 1.5s infinite ease-in;
+        }
+        @keyframes dripLoop {
+            0% { top: 20px; opacity: 0; transform: scale(1); }
+            10% { opacity: 1; }
+            80% { opacity: 1; transform: scale(1); }
+            100% { top: 100px; opacity: 0; transform: scale(0.5); }
+        }
+        
     </style>
 </head>
 <body>
 
-<div class="header">Noodle Timer V1.03</div>
+<div class="header">Noodle Timer V1.04</div>
 
 <div class="container">
     <!-- 1. スキャン画面 ＆ JAN手入力 -->
@@ -149,6 +202,10 @@
         <!-- 実際のカウントダウンタイマー -->
         <div id="countdownArea" style="display: none;">
             <div id="countdownLabel" class="noodle-info"></div>
+            
+            <!-- ★V1.04 追加: アニメーション表示エリア -->
+            <div id="noodleAnimation" class="animation-container"></div>
+            
             <div class="timer-display" id="timerDisplay">00:00</div>
             <button id="btnCancelTimer" class="btn-stop">■ 中止して戻る</button>
         </div>
@@ -397,7 +454,7 @@
         btn.disabled = true;
         btn.textContent = "検索中...";
 
-        // 1. 本来のYahoo!ショッピングAPIのURL[cite: 1]
+        // 1. 本来のYahoo!ショッピングAPIのURL
         const targetUrl = `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${appId}&jan_code=${currentBarcode}`;
 
         // 2. CORSプロキシのURLでラップする（ブラウザのCORS制限を回避）
@@ -479,6 +536,9 @@
         countdownArea.style.display = 'block';
         document.getElementById('countdownLabel').textContent = labelName;
 
+        // ★V1.04 追加: アニメーションのセットアップ
+        setupAnimation(labelName);
+
         updateTimerDisplay(targetSeconds);
         let remain = targetSeconds;
         
@@ -488,9 +548,55 @@
             if (remain <= 0) {
                 clearInterval(currentInterval);
                 document.getElementById('timerDisplay').textContent = "完成！";
+                // ★V1.04 追加: アニメーションを停止
+                document.getElementById('noodleAnimation').innerHTML = '';
                 playBeep(); 
             }
         }, 1000);
+    }
+
+    // ★V1.04 追加: アニメーションをDOMに生成する関数
+    function setupAnimation(productName) {
+        const animContainer = document.getElementById('noodleAnimation');
+        animContainer.innerHTML = ''; // 一旦クリア
+
+        // 焼きそばかどうか判定するキーワード
+        const isYakisoba = /焼きそば|焼そば|U\.F\.O\.|ペヤング|一平ちゃん/.test(productName);
+
+        if (isYakisoba) {
+            // --- 焼きそばバージョン（湯切り） ---
+            // 湯切り口をイメージした線
+            const outlet = document.createElement('div');
+            outlet.style.cssText = 'width: 60px; height: 4px; background: #555; position: absolute; top: 15px; border-radius: 2px;';
+            animContainer.appendChild(outlet);
+
+            // 水滴を5つ生成して少しずつ遅延させてアニメーション
+            for (let i = 0; i < 5; i++) {
+                const drip = document.createElement('div');
+                drip.className = 'drip';
+                // 落ちる位置を少しランダムに
+                drip.style.left = (Math.random() * 30 + 35) + '%'; 
+                // アニメーションの開始時間をずらす
+                drip.style.animationDelay = (i * 0.3) + 's';
+                animContainer.appendChild(drip);
+            }
+        } else {
+            // --- ラーメンバージョン（湯気、デフォルト） ---
+            // 湯気を3本生成
+            for (let i = 0; i < 3; i++) {
+                const steam = document.createElement('div');
+                steam.className = 'steam';
+                // 位置とアニメーション時間を少しランダムに
+                steam.style.left = (35 + i * 10 + (Math.random()*5)) + '%';
+                steam.style.animationDuration = (1.5 + Math.random()) + 's';
+                steam.style.animationDelay = (Math.random()) + 's';
+                animContainer.appendChild(steam);
+            }
+            // カップのフタの縁をイメージした線
+            const edge = document.createElement('div');
+            edge.style.cssText = 'width: 100px; height: 5px; background: #444; position: absolute; bottom: 5px; border-radius: 5px;';
+            animContainer.appendChild(edge);
+        }
     }
 
     function updateTimerDisplay(sec) {
@@ -507,6 +613,10 @@
 
     function resetApp() {
         if (currentInterval) clearInterval(currentInterval);
+        
+        // ★V1.04 追加: アニメーションをクリア
+        document.getElementById('noodleAnimation').innerHTML = '';
+
         document.getElementById('manualJanInput').value = "";
         timerPanel.style.display = 'none';
         scanPanel.style.display = 'block';
