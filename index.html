@@ -3,63 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Noodle Timer V1.04</title>
+    <title>Noodle Timer V1.07</title>
     <!-- バーコードスキャン用のライブラリ -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e1e; color: #d4d4d4; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
         * { box-sizing: border-box; }
         
-        .header { background-color: #252526; width: 100%; padding: 15px; text-align: center; font-size: 1.2em; font-weight: bold; border-bottom: 1px solid #3e3e42; color: #fff; }
+        /* 余白を詰めてコンパクトに */
+        .header { background-color: #252526; width: 100%; padding: 10px; text-align: center; font-size: 1.1em; font-weight: bold; border-bottom: 1px solid #3e3e42; color: #fff; }
         
-        .container { padding: 20px; width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 20px; }
-        .panel { background-color: #2d2d2d; border: 1px solid #3e3e42; border-radius: 8px; padding: 20px; text-align: center; }
+        .container { padding: 10px; width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 10px; }
+        .panel { background-color: #2d2d2d; border: 1px solid #3e3e42; border-radius: 8px; padding: 12px; text-align: center; }
         
-        button { background-color: #0e639c; color: white; border: none; padding: 15px 20px; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.1em; }
+
+        button { background-color: #0e639c; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-size: 1em; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
         button:active { background-color: #1177bb; }
         button:disabled { background-color: #555; cursor: not-allowed; color: #888; }
         .btn-start-timer { background-color: #28a745; }
         .btn-stop { background-color: #dc3545; }
-        .btn-quick { background-color: #d1691c; width: auto; padding: 10px 20px; flex-grow: 1; }
+        .btn-quick { background-color: #d1691c; width: auto; padding: 8px 15px; flex-grow: 1; margin-top: 0; }
         
-        .btn-import-label { display: block; background-color: #512da8; color: white; padding: 15px 20px; border-radius: 6px; font-size: 1.1em; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; text-align: center; }
+        .btn-import-label { display: block; background-color: #512da8; color: white; padding: 10px 15px; border-radius: 6px; font-size: 1em; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; text-align: center; }
         .btn-import-label:active { background-color: #4527a0; }
         
-        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
         #reader video { object-fit: cover; }
         
-        .noodle-info { font-size: 1.5em; color: #dcdcaa; font-weight: bold; margin: 15px 0; }
-        .time-info { font-size: 1.2em; color: #fff; }
+        .noodle-info { font-size: 1.3em; color: #dcdcaa; font-weight: bold; margin: 10px 0; }
+        .time-info { font-size: 1.1em; color: #fff; }
         
-        .timer-display { font-size: 6em; font-weight: bold; color: #4fc1ff; text-align: center; line-height: 1; margin: 20px 0; font-family: monospace; position: relative; z-index: 10; }
-        .status-msg { font-size: 1.1em; color: #ce9178; margin-top: 10px; }
+        .timer-display { font-size: 5em; font-weight: bold; color: #4fc1ff; text-align: center; line-height: 1; margin: 15px 0; font-family: monospace; position: relative; z-index: 10; }
+        .status-msg { font-size: 1em; color: #ce9178; margin-top: 5px; }
 
-        .register-form { margin-top: 20px; background-color: #333; padding: 15px; border-radius: 8px; border: 1px dashed #555; text-align: left; }
+        .register-form { margin-top: 15px; background-color: #333; padding: 12px; border-radius: 8px; border: 1px dashed #555; text-align: left; }
         
         /* 入力フォーム・プルダウンのスタイル */
         input[type="text"], input[type="number"], select { 
-            width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; 
+            width: 100%; padding: 8px; margin-top: 4px; margin-bottom: 8px; 
             background-color: #1e1e1e; color: #fff; border: 1px solid #555; 
             border-radius: 4px; font-size: 1em; 
         }
-        .time-input { width: 80px; text-align: right; margin-bottom: 0; font-size: 1.2em; }
+        .time-input { width: 80px; text-align: right; margin-bottom: 0; font-size: 1.1em; }
 
-        /* =========================================
-           ★V1.04 追加: アニメーション用のCSS
-           ========================================= */
+        /* アニメーション用のCSS */
         .animation-container {
             position: relative;
             width: 100%;
-            height: 100px; /* アニメーションエリアの高さ */
-            margin-top: -10px;
-            margin-bottom: -10px;
+            height: 80px; /* 少し高さを抑える */
+            margin-top: -5px;
+            margin-bottom: -5px;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        /* --- ラーメン共通スタイル（湯気） --- */
         .steam {
             width: 15px;
             height: 40px;
@@ -78,45 +78,43 @@
             100% { transform: translateY(-80px) scaleX(2); opacity: 0; }
         }
 
-        /* --- 焼きそば共通スタイル（湯切りポタポタ） --- */
         .drip {
             width: 8px;
             height: 8px;
-            background-color: #4fc1ff; /* タイマーと同じ水色 */
+            background-color: #4fc1ff;
             border-radius: 50%;
             position: absolute;
-            top: 20px;
+            top: 10px;
             opacity: 0;
             animation: dripLoop 1.5s infinite ease-in;
         }
         @keyframes dripLoop {
-            0% { top: 20px; opacity: 0; transform: scale(1); }
+            0% { top: 10px; opacity: 0; transform: scale(1); }
             10% { opacity: 1; }
             80% { opacity: 1; transform: scale(1); }
-            100% { top: 100px; opacity: 0; transform: scale(0.5); }
+            100% { top: 80px; opacity: 0; transform: scale(0.5); }
         }
         
     </style>
 </head>
 <body>
 
-<div class="header">Noodle Timer V1.04</div>
+<div class="header">Noodle Timer V1.07</div>
 
 <div class="container">
     <!-- 1. スキャン画面 ＆ JAN手入力 -->
     <div class="panel" id="scanPanel">
-        <h3 style="margin-top: 0; color: #569cd6;">📷 バーコードで探す</h3>
+        <h3 style="color: #569cd6;">📷 バーコードで探す</h3>
         
-        <!-- JAN手入力エリア -->
-        <div style="background-color: #252526; padding: 12px; border-radius: 6px; margin-bottom: 15px; text-align: left; border: 1px solid #3e3e42;">
-            <label style="font-size: 0.85em; color: #888;">JANコードを直接入力して検索</label>
-            <div style="display: flex; gap: 8px; margin-top: 5px;">
-                <input type="text" id="manualJanInput" placeholder="例: 4902105022122" maxlength="13" style="margin-bottom: 0;">
-                <button id="btnSearchJan" style="margin-top: 0; width: 110px; padding: 10px; font-size: 0.95em; background-color: #1177bb;">検索</button>
+        <div style="background-color: #252526; padding: 10px; border-radius: 6px; margin-bottom: 10px; text-align: left; border: 1px solid #3e3e42;">
+            <label style="font-size: 0.8em; color: #888;">JANコードを直接入力して検索</label>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+                <input type="text" id="manualJanInput" placeholder="例: 4902105022122" maxlength="13" style="margin-bottom: 0; padding: 8px;">
+                <button id="btnSearchJan" style="margin-top: 0; width: 90px; padding: 8px; font-size: 0.9em; background-color: #1177bb;">検索</button>
             </div>
         </div>
 
-        <p style="font-size: 0.9em; color: #888; margin-bottom: 10px;">またはカメラで読み取る</p>
+        <p style="font-size: 0.85em; color: #888; margin: 0 0 8px 0;">またはカメラで読み取る</p>
         <div id="reader"></div>
         <button id="btnStartScan">カメラを起動する</button>
         <button id="btnStopScan" class="btn-stop" style="display: none;">⏹ スキャン停止</button>
@@ -124,7 +122,7 @@
 
     <!-- 2. リストから手動選択画面 -->
     <div class="panel" id="manualSelectPanel">
-        <h3 style="margin-top: 0; color: #4ec9b0;">📋 リストから選ぶ</h3>
+        <h3 style="color: #4ec9b0;">📋 リストから選ぶ</h3>
         <select id="makerSelect">
             <option value="">メーカーを選択...</option>
         </select>
@@ -136,8 +134,8 @@
 
     <!-- 3. 手動タイマー画面 -->
     <div class="panel" id="manualTimerPanel">
-        <h3 style="margin-top: 0; color: #ce9178;">⏱ 手動でセット</h3>
-        <div style="display: flex; gap: 10px; justify-content: space-between; margin-bottom: 15px;">
+        <h3 style="color: #ce9178;">⏱ 手動でセット</h3>
+        <div style="display: flex; gap: 10px; justify-content: space-between; margin-bottom: 10px;">
             <button id="btn3Min" class="btn-quick">3分セット</button>
             <button id="btn5Min" class="btn-quick">5分セット</button>
         </div>
@@ -150,16 +148,15 @@
 
     <!-- データ管理画面 -->
     <div class="panel" id="dataPanel">
-        <h3 style="margin-top: 0; color: #4fc1ff;">💾 データ管理</h3>
-        <p style="font-size: 0.9em; color: #888;">自分で登録したデータのバックアップ・復元</p>
-        <button id="btnExport" style="background-color: #28a745;">📤 データを書き出し (保存)</button>
-        <label for="fileImport" class="btn-import-label">📥 データを読み込み (復元)</label>
+        <h3 style="color: #4fc1ff;">💾 データ管理</h3>
+        <p style="font-size: 0.85em; color: #888; margin-top:0;">自分で登録したデータの保存と復元</p>
+        <button id="btnExport" style="background-color: #28a745;">📤 データを書き出し</button>
+        <label for="fileImport" class="btn-import-label">📥 データを読み込み</label>
         <input type="file" id="fileImport" accept=".json" style="display: none;">
     </div>
 
     <!-- 結果・カウントダウン画面 -->
     <div class="panel" id="timerPanel" style="display: none;">
-        <!-- スキャン結果確認用 -->
         <div id="resultArea">
             <div class="noodle-info" id="noodleName">商品名</div>
             <div class="time-info" id="timeInfoWrapper">待ち時間: <span id="noodleTime">--</span></div>
@@ -167,45 +164,42 @@
             
             <button id="btnStartTimerFromScan" class="btn-start-timer" style="display: none;">▶ タイマー開始</button>
 
-            <!-- 新規登録フォーム（Yahoo! API連携対応） -->
+            <!-- 新規登録フォーム -->
             <div id="registerArea" class="register-form" style="display: none;">
                 <h4 style="margin: 0 0 10px 0; color: #4fc1ff;">📝 新しい商品を登録</h4>
                 
                 <div style="margin-bottom: 10px;">
-                    <label style="font-size: 0.85em; color: #888;">Yahoo! API アプリケーションID (Client ID)</label>
-                    <input type="text" id="yahooAppId" placeholder="ここにYahoo! APIのClient IDを入力" style="margin-bottom: 5px;">
-                    <button id="btnFetchYahoo" style="background-color: #512da8; padding: 10px; font-size: 0.9em; margin-top: 0;">🔍 Yahoo! APIで商品情報を検索</button>
+                    <label style="font-size: 0.8em; color: #888;">Yahoo! API アプリケーションID</label>
+                    <input type="text" id="yahooAppId" placeholder="Client IDを入力" style="margin-bottom: 5px;">
+                    <button id="btnFetchYahoo" style="background-color: #512da8; padding: 8px; font-size: 0.9em; margin-top: 0;">🔍 Yahoo! APIで検索</button>
                 </div>
 
-                <label style="font-size: 0.9em;">メーカー名 / 商品名</label>
+                <label style="font-size: 0.85em;">メーカー名 / 商品名</label>
                 <input type="text" id="regName" placeholder="例: 日清食品 カップヌードル">
                 
-                <label style="font-size: 0.9em; display: block; margin-top: 5px;">分類（ジャンル）</label>
+                <label style="font-size: 0.85em; display: block; margin-top: 5px;">分類（ジャンル）</label>
                 <input type="text" id="regGenre" placeholder="例: カップラーメン">
 
-                <label style="font-size: 0.9em; display: block; margin-top: 5px;">待ち時間を選択して登録</label>
-                <div style="display: flex; gap: 10px; margin: 5px 0 15px 0;">
-                    <button type="button" class="btn-reg-time-preset" data-min="3" style="margin-top:0; background-color:#d1691c; padding:8px;">3分</button>
-                    <button type="button" class="btn-reg-time-preset" data-min="4" style="margin-top:0; background-color:#555; padding:8px;">4分</button>
-                    <button type="button" class="btn-reg-time-preset" data-min="5" style="margin-top:0; background-color:#555; padding:8px;">5分</button>
+                <label style="font-size: 0.85em; display: block; margin-top: 5px;">待ち時間を選択して登録</label>
+                <div style="display: flex; gap: 10px; margin: 5px 0 10px 0;">
+                    <button type="button" class="btn-reg-time-preset" data-min="3" style="margin-top:0; background-color:#d1691c; padding:6px;">3分</button>
+                    <button type="button" class="btn-reg-time-preset" data-min="4" style="margin-top:0; background-color:#555; padding:6px;">4分</button>
+                    <button type="button" class="btn-reg-time-preset" data-min="5" style="margin-top:0; background-color:#555; padding:6px;">5分</button>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                     <input type="number" id="regTime" value="3" min="1" max="15" class="time-input">
-                    <span>分 (カスタム指定)</span>
+                    <span>分 (カスタム)</span>
                 </div>
                 <button id="btnRegisterAndStart" style="background-color: #d1691c;">💾 登録してタイマー開始</button>
             </div>
             <button id="btnRetryScan" style="background-color: #555;">🔄 キャンセル</button>
         </div>
 
-        <!-- 実際のカウントダウンタイマー -->
+        <!-- カウントダウンタイマー -->
         <div id="countdownArea" style="display: none;">
             <div id="countdownLabel" class="noodle-info"></div>
-            
-            <!-- ★V1.04 追加: アニメーション表示エリア -->
             <div id="noodleAnimation" class="animation-container"></div>
-            
             <div class="timer-display" id="timerDisplay">00:00</div>
             <button id="btnCancelTimer" class="btn-stop">■ 中止して戻る</button>
         </div>
@@ -213,7 +207,6 @@
 </div>
 
 <script>
-    // === 1. 基本データベース ===
     const DEFAULT_DB = {
         "4902881073604": { name: "チャルメラカップ しょうゆ", seconds: 180 }, 
         "4902702004002": { name: "マルタイ 長崎ちゃんぽん", seconds: 180 }, 
@@ -233,14 +226,12 @@
     let userDB = JSON.parse(localStorage.getItem('cup_noodle_custom_db')) || {};
     let activeDB = { ...DEFAULT_DB, ...userDB };
 
-    // APIキーの永続化
     const savedAppId = localStorage.getItem('yahoo_app_id') || "";
     document.getElementById('yahooAppId').value = savedAppId;
     document.getElementById('yahooAppId').addEventListener('input', (e) => {
         localStorage.setItem('yahoo_app_id', e.target.value.trim());
     });
 
-    // === 音声・UI・状態管理 ===
     let audioContext;
     function playBeep() {
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -271,7 +262,6 @@
     let isCameraRunning = false; 
     let currentBarcode = "";
 
-    // === 2. リスト選択機能の初期化 ===
     const makerSelect = document.getElementById('makerSelect');
     const productSelect = document.getElementById('productSelect');
     let groupedDB = {};
@@ -338,7 +328,6 @@
         }
     });
 
-    // === 3. 手動タイマー機能 ===
     document.getElementById('btn3Min').addEventListener('click', () => {
         document.getElementById('manualMin').value = 3;
         document.getElementById('manualSec').value = 0;
@@ -363,7 +352,6 @@
         }
     });
 
-    // === 4. JAN手入力検索 ＆ カメラバーコードスキャン処理 ===
     document.getElementById('btnSearchJan').addEventListener('click', () => {
         const janVal = document.getElementById('manualJanInput').value.trim();
         if (!janVal) {
@@ -442,7 +430,6 @@
         }
     }
 
-// Yahoo! API (v3 itemSearch) を使ったJANコード検索
     document.getElementById('btnFetchYahoo').addEventListener('click', async () => {
         const appId = document.getElementById('yahooAppId').value.trim();
         if (!appId) {
@@ -454,14 +441,10 @@
         btn.disabled = true;
         btn.textContent = "検索中...";
 
-        // 1. 本来のYahoo!ショッピングAPIのURL
         const targetUrl = `https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?appid=${appId}&jan_code=${currentBarcode}`;
-
-        // 2. CORSプロキシのURLでラップする（ブラウザのCORS制限を回避）
         const proxyUrl = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
 
         try {
-            // プロキシURLを使用して通信を行う
             const response = await fetch(proxyUrl);
             if (!response.ok) throw new Error("API通信に失敗しました (HTTP " + response.status + ")");
             
@@ -487,7 +470,6 @@
         }
     });
 
-    // 登録画面の待ち時間プリセットボタン
     document.querySelectorAll('.btn-reg-time-preset').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.btn-reg-time-preset').forEach(b => b.style.backgroundColor = '#555');
@@ -496,12 +478,10 @@
         });
     });
 
-    // スキャンからのタイマー開始
     document.getElementById('btnStartTimerFromScan').addEventListener('click', () => {
         startCountdownMode(activeDB[currentBarcode].name);
     });
 
-    // 新規登録からのタイマー開始
     document.getElementById('btnRegisterAndStart').addEventListener('click', () => {
         const nameInput = document.getElementById('regName').value.trim();
         const timeInput = parseInt(document.getElementById('regTime').value);
@@ -518,7 +498,6 @@
         startCountdownMode(nameInput);
     });
 
-    // === 5. タイマーの共通処理 ===
     function hideHomePanels() {
         scanPanel.style.display = 'none';
         manualSelectPanel.style.display = 'none';
@@ -526,73 +505,78 @@
         dataPanel.style.display = 'none';
     }
 
+    // 🌟 タイマー開始（更新対策として終了時刻を記録）
     function startCountdownMode(labelName) {
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
         if (audioContext.state === 'suspended') audioContext.resume();
 
+        const endTime = Date.now() + (targetSeconds * 1000);
+        sessionStorage.setItem('timerEndTime', endTime);
+        sessionStorage.setItem('timerLabel', labelName);
+        sessionStorage.setItem('timerActive', 'true');
+
+        executeTimerUI(labelName, endTime);
+    }
+
+    // 🌟 実際のタイマー画面の構築とカウントダウン処理
+    function executeTimerUI(labelName, endTime) {
         hideHomePanels();
         timerPanel.style.display = 'block';
         resultArea.style.display = 'none';
         countdownArea.style.display = 'block';
         document.getElementById('countdownLabel').textContent = labelName;
 
-        // ★V1.04 追加: アニメーションのセットアップ
         setupAnimation(labelName);
 
-        updateTimerDisplay(targetSeconds);
-        let remain = targetSeconds;
-        
-        currentInterval = setInterval(() => {
-            remain--;
-            updateTimerDisplay(remain);
+        if (currentInterval) clearInterval(currentInterval);
+
+        const update = () => {
+            const now = Date.now();
+            const remain = Math.ceil((endTime - now) / 1000);
+
             if (remain <= 0) {
                 clearInterval(currentInterval);
+                updateTimerDisplay(0);
                 document.getElementById('timerDisplay').textContent = "完成！";
-                // ★V1.04 追加: アニメーションを停止
                 document.getElementById('noodleAnimation').innerHTML = '';
+                sessionStorage.removeItem('timerActive'); // 完了したら記録を消す
                 playBeep(); 
+            } else {
+                updateTimerDisplay(remain);
             }
-        }, 1000);
+        };
+
+        update();
+        currentInterval = setInterval(update, 500); // ズレ防止のため0.5秒ごとにチェック
     }
 
-    // ★V1.04 追加: アニメーションをDOMに生成する関数
     function setupAnimation(productName) {
         const animContainer = document.getElementById('noodleAnimation');
-        animContainer.innerHTML = ''; // 一旦クリア
+        animContainer.innerHTML = '';
 
-        // 焼きそばかどうか判定するキーワード
         const isYakisoba = /焼きそば|焼そば|U\.F\.O\.|ペヤング|一平ちゃん/.test(productName);
 
         if (isYakisoba) {
-            // --- 焼きそばバージョン（湯切り） ---
-            // 湯切り口をイメージした線
             const outlet = document.createElement('div');
-            outlet.style.cssText = 'width: 60px; height: 4px; background: #555; position: absolute; top: 15px; border-radius: 2px;';
+            outlet.style.cssText = 'width: 60px; height: 4px; background: #555; position: absolute; top: 10px; border-radius: 2px;';
             animContainer.appendChild(outlet);
 
-            // 水滴を5つ生成して少しずつ遅延させてアニメーション
             for (let i = 0; i < 5; i++) {
                 const drip = document.createElement('div');
                 drip.className = 'drip';
-                // 落ちる位置を少しランダムに
                 drip.style.left = (Math.random() * 30 + 35) + '%'; 
-                // アニメーションの開始時間をずらす
                 drip.style.animationDelay = (i * 0.3) + 's';
                 animContainer.appendChild(drip);
             }
         } else {
-            // --- ラーメンバージョン（湯気、デフォルト） ---
-            // 湯気を3本生成
             for (let i = 0; i < 3; i++) {
                 const steam = document.createElement('div');
                 steam.className = 'steam';
-                // 位置とアニメーション時間を少しランダムに
                 steam.style.left = (35 + i * 10 + (Math.random()*5)) + '%';
                 steam.style.animationDuration = (1.5 + Math.random()) + 's';
                 steam.style.animationDelay = (Math.random()) + 's';
                 animContainer.appendChild(steam);
             }
-            // カップのフタの縁をイメージした線
             const edge = document.createElement('div');
             edge.style.cssText = 'width: 100px; height: 5px; background: #444; position: absolute; bottom: 5px; border-radius: 5px;';
             animContainer.appendChild(edge);
@@ -607,15 +591,18 @@
             String(m).padStart(2, '0') + ":" + String(s).padStart(2, '0');
     }
 
-    // 中止・戻る処理
     document.getElementById('btnCancelTimer').addEventListener('click', resetApp);
     document.getElementById('btnRetryScan').addEventListener('click', resetApp);
 
     function resetApp() {
         if (currentInterval) clearInterval(currentInterval);
         
-        // ★V1.04 追加: アニメーションをクリア
         document.getElementById('noodleAnimation').innerHTML = '';
+
+        // タイマー中断時にセッションをクリア
+        sessionStorage.removeItem('timerActive');
+        sessionStorage.removeItem('timerEndTime');
+        sessionStorage.removeItem('timerLabel');
 
         document.getElementById('manualJanInput').value = "";
         timerPanel.style.display = 'none';
@@ -626,8 +613,6 @@
         initSelectBoxes(); 
     }
 
-
-    // === 6. データのバックアップ/復元 ===
     document.getElementById('btnExport').addEventListener('click', () => {
         if (Object.keys(userDB).length === 0) return alert("自分で登録したデータがまだありません。");
         const blob = new Blob([JSON.stringify(userDB, null, 2)], { type: "application/json" });
@@ -661,9 +646,29 @@
         reader.readAsText(file);
     });
 
+    // 🌟 アプリ起動時の初期化とタイマー復元の確認
+    function initApp() {
+        initSelectBoxes();
+        
+        // リロードされた際にタイマーが作動中だったかをチェック
+        if (sessionStorage.getItem('timerActive') === 'true') {
+            const savedEndTime = parseInt(sessionStorage.getItem('timerEndTime'), 10);
+            const savedLabel = sessionStorage.getItem('timerLabel') || "復元されたタイマー";
+            
+            if (savedEndTime > Date.now()) {
+                // まだ時間が残っていればタイマー画面を復元
+                executeTimerUI(savedLabel, savedEndTime);
+            } else {
+                // 既に時間が過ぎていればクリア
+                sessionStorage.removeItem('timerActive');
+                sessionStorage.removeItem('timerEndTime');
+                sessionStorage.removeItem('timerLabel');
+            }
+        }
+    }
 
-    // アプリ起動時の初期化
-    initSelectBoxes();
+    // 起動処理
+    initApp();
 </script>
 </body>
 </html>
